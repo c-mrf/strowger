@@ -18,19 +18,33 @@ class Service(object):
         self.requried = required
         self.globalvars = (service,) if globalvars is None else globalvars
         self.config_func = None
+        self.uri_func = self.default_uri_func
 
-        def configure_func(self, func):
-            assert self.config_func is None, \
-                    "Configure function is already specified for this service"
-            self.config_func = func
+    def configure_func(self, func):
+        """
+        A hook for setting the function to configure the global vars
+        associated with the service
+        """
+        assert self.config_func is None, \
+                "Configure function is already specified for this service"
+        self.config_func = func
+        return
 
-        def configure_service(self, **kwargs):
-            return self.config_func(**kwargs)
+    def configure_service(self, **kwargs):
+        self.config_func(**kwargs)
+        return
+
+    def _read_config(self, environment=None, state=None):
+        pass
+
+    def get_uri(self, environment=None, state=None, **kwargs):
+        pass
 
 
 class Package(object):
     services = []
     root_envvar = None
+    root_gvar = None
 
     def __init__(self, name):
         """
@@ -39,6 +53,7 @@ class Package(object):
         self.name = name
 
     def add_service(self, service):
+        service 
         self.services.append(service)
 
     def set_root_var(self, vname):
@@ -50,7 +65,7 @@ class Package(object):
         self.root_envvar = vname
 
     def get_root_dir(self, *packages):
-        root_dir_vname = self.globalvars['pkg_root'] 
+        root_dir_vname = self.root_gvar
         prd = currentframe().f_globals[root_dir_vname]
         
         if self.root_envvar is None:
@@ -72,24 +87,34 @@ class Package(object):
         return path
 
     def fetch_global_val(self, varname):
-        return currentframe().f_globals[varname]
+        val =  currentframe().f_globals.get(varname)
+        if val is None:
+            raise ValueError("%s is not a variable in the global scope" % varname)
+        return val
 
     def update_global_var(self, varname, value):
         currentframe().f_globals[varname] = value
 
     def configure_service(self, service, **kwargs):
         (s,) = [l for l in self.services if l.name==service]
-        return s.configure_service(**kwargs)
+        s.configure_service(**kwargs)
+        return
 
-    def configure(self, **kwargs):
-        return {s.name: s.configure_service(**kwargs) for s in self.services}
+    def configure(self, pkg_root=True, services=False, **kwargs):
+        if pkg_root:
+            pkgroot = self.get_root_dir(kwargs.get('packages')) 
+            self.update_global_var(self.root_gvar, pkgroot)
+        
+        if services:
+            for s in self.services:
+                s.configure_service(**kwargs)
+        return
 
 
 class DBPackage(Package):
     globalvars = {
             'engine': 'engine',
             'metadata': 'metadata',
-            'pkg_root': 'pkg_root_dir',
             'session': 'session',
         }
     pass
