@@ -2,21 +2,34 @@ import os
 from inspect import currentframe
 
 
+class Service(object):
+    def __init__(self, service=None, shorthand=None, globalvars=None, uri=None, required=False):
+        """
+        :param service: A name for the service, e.g. `database`
+        :param shorthand: A shorthand, e.g. `db`
+        :param uri: config option for URI for the service e.g. `db_uri`
+        :param required: Boolean value denoting whether the service is required
+        :param globalvars: An iterable of the globalvars of interest
+        """
+
+        self.service = service
+        self.shorthand = service[:2] if shorthand is None else shorthand
+        self.uri = shorthand if uri is None else uri
+        self.requried = required
+        self.globalvars = (service,) if globalvars is None else globalvars
+        self.config_func = None
+
+        def configure_func(self, func):
+            assert self.config_func is None, \
+                    "Configure function is already specified for this service"
+            self.config_func = func
+
+        def configure_service(self, **kwargs):
+            return self.config_func(**kwargs)
+
+
 class Package(object):
-    service_properties = {
-            'service': 'a name for the service, e.g. `database`',
-            'shorthand': 'a shorthand, e.g. `db`',
-            'uri': 'uri for the service',
-            'required': 'boolean value denoting whether the service is required'
-            }
-
-    globalvars = {
-            'engine': 'engine',
-            'metadata': 'metadata',
-            'pkg_root': 'pkg_root_dir',
-            'session': 'session',
-        }
-
+    services = []
     root_envvar = None
 
     def __init__(self, name):
@@ -24,6 +37,9 @@ class Package(object):
         :param name: The name of the being developed
         """
         self.name = name
+
+    def add_service(self, service):
+        self.services.append(service)
 
     def set_root_var(self, vname):
         """
@@ -56,7 +72,24 @@ class Package(object):
         return path
 
     def fetch_global_val(self, varname):
-        pass
+        return currentframe().f_globals[varname]
 
     def update_global_var(self, varname, value):
         currentframe().f_globals[varname] = value
+
+    def configure_service(self, service, **kwargs):
+        (s,) = [l for l in self.services if l.name==service]
+        return s.configure_service(**kwargs)
+
+    def configure(self, **kwargs):
+        return {s.name: s.configure_service(**kwargs) for s in self.services}
+
+
+class DBPackage(Package):
+    globalvars = {
+            'engine': 'engine',
+            'metadata': 'metadata',
+            'pkg_root': 'pkg_root_dir',
+            'session': 'session',
+        }
+    pass

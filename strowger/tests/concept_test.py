@@ -1,11 +1,12 @@
 import inspect
 from strowger import Package
+from unittest import TestCase
 
 Bob = None
 
-class TestPackage(Package):
+class NewPackage(Package):
     def __init__(self, name):
-        super(TestPackage, self).__init__(name)
+        super(NewPackage, self).__init__(name)
 
     def stack(self):
         return inspect.stack()
@@ -25,13 +26,28 @@ class TestPackage(Package):
     def setbob(self, name):
         inspect.currentframe().f_globals['Bob'] = name
 
+class TestPackage(TestCase):
+    def setUp(self):
+        super(TestPackage, self).setUp()
+        self.tp = NewPackage('boo')
 
-tp = TestPackage('boo')
+    def test_currentframe_num(self):
+        cf = self.tp.currentframe()
+        cf1 = self.tp.currentframe_num(1)
+        self.assertEqual(cf.f_globals, cf1.f_globals)
 
-s = tp.stack()
-cf = tp.currentframe()
-gv = tp.globalvars()
-b = tp.bob()
+    def test_bob(self):
+        self.assertFalse(self.tp.bob())
+
+    def test_set_bob(self):
+        self.assertFalse(self.tp.bob())
+        cf = self.tp.currentframe()
+        self.assertFalse(cf.f_globals['Bob'])
+
+        bname = 'Bobby boy'
+        self.tp.setbob(bname)
+        self.assertEqual(self.tp.bob(), bname)
+        self.assertEqual(self.tp.globalvars()['Bob'], bname)
 
 
 
