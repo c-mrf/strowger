@@ -26,6 +26,7 @@ class NewPackage(Package):
     def setbob(self, name):
         inspect.currentframe().f_globals['Bob'] = name
 
+
 class TestPackage(TestCase):
     def setUp(self):
         super(TestPackage, self).setUp()
