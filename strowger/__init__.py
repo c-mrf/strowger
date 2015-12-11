@@ -1,5 +1,5 @@
 import os
-from inspect import currentframe
+from inspect import currentframe, getframeinfo
 
 
 class Service(object):
@@ -88,13 +88,21 @@ class Package(object):
         else:
             path = prd
         if not os.path.exists(path):
-            raise Exception("%s does not exist" % path)
+            raise ValueError("%s does not exist" % path)
         return path
 
+    def correct_frame(self):
+        frame = currentframe(1)
+        while getframeinfo(frame)[0] == getframeinfo(currentframe())[0]:
+            frame = frame.f_back
+        return frame
+
     def fetch_global_val(self, varname):
-        if varname not in currentframe(1).f_globals.keys():
+        fglobals = self.correct_frame().f_globals
+        
+        if varname not in fglobals.keys():
             raise ValueError("%s is not a variable in the global scope" % varname)
-        val =  currentframe(1).f_globals.get(varname)
+        val =  fglobals.get(varname)
         return val
 
     def update_global_var(self, varname, value):

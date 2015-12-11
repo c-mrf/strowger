@@ -31,8 +31,8 @@ prdpkg = None
 prd_not_none = os.path.dirname(os.path.abspath(__file__))
 prd_not_none_dne = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'dne_dir')
 
-packages = ('tstpkg', 'pkgdir')
-packages_dne = ('tstpkg', 'pkdgirdne')
+packages = ('testpkg', 'pkgdir')
+packages_dne = ('testpkg', 'pkdgirdne')
 
 class TestGetRoot(PkgMixin, TestCase):
     dir_exists = None
@@ -79,13 +79,32 @@ class TestGetRoot(PkgMixin, TestCase):
             self.packages = None
             assert self.packages is None
 
-    def envvar_set(self, boolean):
+    def envvar_set(self, boolean, dne=False):
         self.envvar = boolean
         if boolean:
-            if self.dir_exists:
+            if self.dir_exists and not dne:
                 os.environ[self.package.get_root_var()] = self.package.fetch_global_val('prd_not_none')
             else:
                 os.environ[self.package.get_root_var()] = self.package.fetch_global_val('prd_not_none_dne')
+
+    def verify_root(self, root_dir=None):
+        if root_dir:
+            test_dir = self.package.get_root_dir()
+            self.assertEqual(test_dir, root_dir)
+        else:
+            if self.dir_exists:
+                if self.packages:
+                    correct = os.path.join(self.package.fetch_global_val('prd_not_none'), *self.packages)
+                else:
+                    correct = self.package.fetch_global_val('prd_not_none')
+                test_dir = self.package.get_root_dir(packages=self.packages)
+                self.assertEqual(test_dir, correct)
+                if self.envvar:
+                    assert os.environ[self.package.get_root_var()] is not None
+                #print "\n\t %s" % correct
+            else:
+                with self.assertRaises(ValueError):
+                    self.package.get_root_dir(packages=self.packages)
 
     """
     Group 1
@@ -94,25 +113,29 @@ class TestGetRoot(PkgMixin, TestCase):
         self.dir_exists(True)
         self.packages(False)
         self.prd_none(False)
-        self.envvar_set(True)
+        self.envvar_set(True, dne=True)
+        self.verify_root()
 
     def test_prd_not_none_dir_dne(self):
         self.dir_exists(False)
         self.packages(False)
         self.prd_none(False)
-        self.envvar_set(True)
+        self.envvar_set(True, dne=True)
+        self.verify_root()
 
     def test_prd_not_none_packages_dir_exists(self):
         self.dir_exists(True)
         self.packages(True)
         self.prd_none(False)
-        self.envvar_set(True)
+        self.envvar_set(True, dne=True)
+        self.verify_root()
 
     def test_prd_not_none_packages_dir_dne(self):
         self.dir_exists(False)
         self.packages(True)
         self.prd_none(False)
-        self.envvar_set(True)
+        self.envvar_set(True, dne=True)
+        self.verify_root()
 
     """
     Group 2
@@ -121,25 +144,29 @@ class TestGetRoot(PkgMixin, TestCase):
         self.dir_exists(True)
         self.packages(False)
         self.prd_none(True)
-        self.envvar_set(False)
+        self.envvar_set(True)
+        self.verify_root()
 
     def test_prd_none_envvar_set_attr_unset_dir_dne(self):
         self.dir_exists(False)
         self.packages(False)
         self.prd_none(True)
         self.envvar_set(True)
+        self.verify_root()
 
     def test_prd_none_packages_envvar_set_attr_unset_dir_exists(self):
         self.dir_exists(True)
         self.packages(True)
         self.prd_none(True)
         self.envvar_set(True)
+        self.verify_root()
 
     def test_prd_none_packages_envvar_set_attr_unset_dir_dne(self):
         self.dir_exists(False)
         self.packages(True)
         self.prd_none(True)
         self.envvar_set(True)
+        self.verify_root()
 
 
     """
@@ -149,25 +176,30 @@ class TestGetRoot(PkgMixin, TestCase):
         self.dir_exists(True)
         self.packages(False)
         self.prd_none(True)
+        default_envvar = self.package.get_root_var()
         self.envvar_set(True)
+        self.verify_root()
 
     def test_prd_none_envvar_set_attr_set_matching_dir_dne(self):
         self.dir_exists(False)
         self.packages(False)
         self.prd_none(True)
         self.envvar_set(True)
+        self.verify_root()
 
     def test_prd_none_packages_envvar_set_attr_set_matching_dir_exists(self):
         self.dir_exists(True)
         self.packages(True)
         self.prd_none(True)
         self.envvar_set(True)
+        self.verify_root()
 
     def test_prd_none_packages_envvar_set_attr_set_matching_dir_dne(self):
         self.dir_exists(False)
         self.packages(True)
         self.prd_none(True)
         self.envvar_set(True)
+        self.verify_root()
 
 
     """
@@ -177,25 +209,41 @@ class TestGetRoot(PkgMixin, TestCase):
         self.dir_exists(True)
         self.packages(False)
         self.prd_none(True)
+        default_envvar = self.package.get_root_var()
+        os.environ[default_envvar] = self.package.fetch_global_val("prd_not_none_dne")
+        self.package.root_envvar = 'ANOTHER_ROOTVAR'
         self.envvar_set(True)
+        self.verify_root()
 
     def test_prd_none_envvar_set_attr_set_unmatching_dir_dne(self):
         self.dir_exists(False)
         self.packages(False)
         self.prd_none(True)
-        self.envvar_set(True)
+        default_envvar = self.package.get_root_var()
+        os.environ[default_envvar] = self.package.fetch_global_val("prd_not_none")
+        self.package.root_envvar = 'ANOTHER_ROOTVAR'
+        self.envvar_set(True, dne=True)
+        self.verify_root()
 
     def test_prd_none_packages_envvar_set_attr_set_unmatching_dir_exists(self):
         self.dir_exists(True)
         self.packages(True)
         self.prd_none(True)
+        default_envvar = self.package.get_root_var()
+        os.environ[default_envvar] = self.package.fetch_global_val("prd_not_none")
+        self.package.root_envvar = 'ANOTHER_ROOTVAR'
         self.envvar_set(True)
+        self.verify_root()
 
     def test_prd_none_packages_envvar_set_attr_set_unmatching_dir_dne(self):
         self.dir_exists(False)
         self.packages(True)
         self.prd_none(True)
-        self.envvar_set(True)
+        default_envvar = self.package.get_root_var()
+        os.environ[default_envvar] = self.package.fetch_global_val("prd_not_none")
+        self.package.root_envvar = 'ANOTHER_ROOTVAR'
+        self.envvar_set(True, dne=True)
+        self.verify_root()
 
 
     """
@@ -206,24 +254,21 @@ class TestGetRoot(PkgMixin, TestCase):
         self.packages(False)
         self.prd_none(True)
         self.envvar_set(False)
-
-    def test_prd_none_envvar_unset_dir_dne(self):
-        self.dir_exists(False)
-        self.packages(False)
-        self.prd_none(True)
-        self.envvar_set(False)
+        self.verify_root()
 
     def test_prd_none_packages_envvar_unset_dir_exists(self):
         self.dir_exists(True)
         self.packages(True)
         self.prd_none(True)
         self.envvar_set(False)
+        self.verify_root()
 
     def test_prd_none_packages_envvar_unset_dir_dne(self):
         self.dir_exists(False)
         self.packages(True)
         self.prd_none(True)
         self.envvar_set(False)
+        self.verify_root()
 
 
 class TestGlobalVars(PkgMixin, TestCase):
