@@ -1,6 +1,5 @@
 import os
-import pprint
-from inspect import currentframe, stack
+from inspect import currentframe
 
 
 class Service(object):
@@ -68,14 +67,16 @@ class Package(object):
                 "root_envvar has already been set"
         self.root_envvar = vname
 
-    def get_root_dir(self, *packages):
-        root_dir_vname = self.root_gvar
-        prd = currentframe().f_globals[root_dir_vname]
-        
+    def get_root_var(self):
         if self.root_envvar is None:
             rv = '%s_ROOT' % self.name.upper()
         else:
             rv = self.root_envvar
+        return rv
+
+    def get_root_dir(self, packages=None):
+        prd = self.fetch_global_val(self.root_gvar)
+        rv = self.get_root_var()
 
         if prd is None:
             if os.environ.get(rv):
@@ -91,9 +92,9 @@ class Package(object):
         return path
 
     def fetch_global_val(self, varname):
-        val =  currentframe(1).f_globals.get(varname)
-        if val is None:
+        if varname not in currentframe(1).f_globals.keys():
             raise ValueError("%s is not a variable in the global scope" % varname)
+        val =  currentframe(1).f_globals.get(varname)
         return val
 
     def update_global_var(self, varname, value):

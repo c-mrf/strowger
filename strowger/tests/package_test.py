@@ -1,4 +1,4 @@
-import inspect
+import os
 
 from strowger import Package
 from unittest import TestCase
@@ -27,64 +27,203 @@ class TestSetRoot(PkgMixin, TestCase):
 
         self.assertEqual(self.package.root_envvar, 'test')
 
+prdpkg = None
+prd_not_none = os.path.dirname(os.path.abspath(__file__))
+prd_not_none_dne = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'dne_dir')
+
+packages = ('tstpkg', 'pkgdir')
+packages_dne = ('tstpkg', 'pkdgirdne')
 
 class TestGetRoot(PkgMixin, TestCase):
-    def prd_none(self, boolean):
-        pass
+    dir_exists = None
+    prd_none = None
+    envvar = None
+    packages = None
+
+    def tearDown(self):
+        try:
+            os.unsetenv('%s_ROOT' % self.package.name.upper())
+        except KeyError:
+            pass
+        if self.package.root_envvar:
+            try:
+                os.unsetenv(self.package.root_envvar)
+            except KeyError:
+                pass
+        super(TestGetRoot, self).tearDown()
 
     def dir_exists(self, boolean):
-        pass
+        self.dir_exists = boolean
+
+    def prd_none(self, boolean):
+        self.prd_none = boolean
+        if self.prd_none:
+            self.package.root_gvar = 'prdpkg'
+            x = self.package.fetch_global_val(self.package.root_gvar)
+            self.assertEqual(x, None)
+        else:
+            if self.dir_exists:
+                self.package.root_gvar = 'prd_not_none'
+            else:
+                self.package.root_gvar = 'prd_not_none_dne'
+            assert self.package.fetch_global_val(self.package.root_gvar) is not None
 
     def packages(self, boolean):
-        pass
+        if boolean:
+            if self.dir_exists:
+                self.packages = packages
+            else:
+                self.packages = packages_dne
+            assert self.packages is not None
+        else:
+            self.packages = None
+            assert self.packages is None
 
+    def envvar_set(self, boolean):
+        self.envvar = boolean
+        if boolean:
+            if self.dir_exists:
+                os.environ[self.package.get_root_var()] = self.package.fetch_global_val('prd_not_none')
+            else:
+                os.environ[self.package.get_root_var()] = self.package.fetch_global_val('prd_not_none_dne')
+
+    """
+    Group 1
+    """
     def test_prd_not_none_dir_exists(self):
-        pass
+        self.dir_exists(True)
+        self.packages(False)
+        self.prd_none(False)
+        self.envvar_set(True)
 
     def test_prd_not_none_dir_dne(self):
-        pass
+        self.dir_exists(False)
+        self.packages(False)
+        self.prd_none(False)
+        self.envvar_set(True)
 
     def test_prd_not_none_packages_dir_exists(self):
-        pass
+        self.dir_exists(True)
+        self.packages(True)
+        self.prd_none(False)
+        self.envvar_set(True)
 
     def test_prd_not_none_packages_dir_dne(self):
-        pass
+        self.dir_exists(False)
+        self.packages(True)
+        self.prd_none(False)
+        self.envvar_set(True)
 
+    """
+    Group 2
+    """
     def test_prd_none_envvar_set_attr_unset_dir_exists(self):
-        pass
+        self.dir_exists(True)
+        self.packages(False)
+        self.prd_none(True)
+        self.envvar_set(False)
+
     def test_prd_none_envvar_set_attr_unset_dir_dne(self):
-        pass
+        self.dir_exists(False)
+        self.packages(False)
+        self.prd_none(True)
+        self.envvar_set(True)
+
     def test_prd_none_packages_envvar_set_attr_unset_dir_exists(self):
-        pass
+        self.dir_exists(True)
+        self.packages(True)
+        self.prd_none(True)
+        self.envvar_set(True)
+
     def test_prd_none_packages_envvar_set_attr_unset_dir_dne(self):
-        pass
+        self.dir_exists(False)
+        self.packages(True)
+        self.prd_none(True)
+        self.envvar_set(True)
 
+
+    """
+    Group 3
+    """
     def test_prd_none_envvar_set_attr_set_matching_dir_exists(self):
-        pass
+        self.dir_exists(True)
+        self.packages(False)
+        self.prd_none(True)
+        self.envvar_set(True)
+
     def test_prd_none_envvar_set_attr_set_matching_dir_dne(self):
-        pass
+        self.dir_exists(False)
+        self.packages(False)
+        self.prd_none(True)
+        self.envvar_set(True)
+
     def test_prd_none_packages_envvar_set_attr_set_matching_dir_exists(self):
-        pass
+        self.dir_exists(True)
+        self.packages(True)
+        self.prd_none(True)
+        self.envvar_set(True)
+
     def test_prd_none_packages_envvar_set_attr_set_matching_dir_dne(self):
-        pass
+        self.dir_exists(False)
+        self.packages(True)
+        self.prd_none(True)
+        self.envvar_set(True)
 
+
+    """
+    Group 4
+    """
     def test_prd_none_envvar_set_attr_set_unmatching_dir_exists(self):
-        pass
-    def test_prd_none_envvar_set_attr_set_unmatching_dir_dne(self):
-        pass
-    def test_prd_none_packages_envvar_set_attr_set_unmatching_dir_exists(self):
-        pass
-    def test_prd_none_packages_envvar_set_attr_set_unmatching_dir_dne(self):
-        pass
+        self.dir_exists(True)
+        self.packages(False)
+        self.prd_none(True)
+        self.envvar_set(True)
 
+    def test_prd_none_envvar_set_attr_set_unmatching_dir_dne(self):
+        self.dir_exists(False)
+        self.packages(False)
+        self.prd_none(True)
+        self.envvar_set(True)
+
+    def test_prd_none_packages_envvar_set_attr_set_unmatching_dir_exists(self):
+        self.dir_exists(True)
+        self.packages(True)
+        self.prd_none(True)
+        self.envvar_set(True)
+
+    def test_prd_none_packages_envvar_set_attr_set_unmatching_dir_dne(self):
+        self.dir_exists(False)
+        self.packages(True)
+        self.prd_none(True)
+        self.envvar_set(True)
+
+
+    """
+    Group 5
+    """
     def test_prd_none_envvar_unset_dir_exists(self):
-        pass
+        self.dir_exists(True)
+        self.packages(False)
+        self.prd_none(True)
+        self.envvar_set(False)
+
     def test_prd_none_envvar_unset_dir_dne(self):
-        pass
+        self.dir_exists(False)
+        self.packages(False)
+        self.prd_none(True)
+        self.envvar_set(False)
+
     def test_prd_none_packages_envvar_unset_dir_exists(self):
-        pass
+        self.dir_exists(True)
+        self.packages(True)
+        self.prd_none(True)
+        self.envvar_set(False)
+
     def test_prd_none_packages_envvar_unset_dir_dne(self):
-        pass
+        self.dir_exists(False)
+        self.packages(True)
+        self.prd_none(True)
+        self.envvar_set(False)
 
 
 class TestGlobalVars(PkgMixin, TestCase):
