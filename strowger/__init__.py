@@ -1,5 +1,6 @@
 import os
-from inspect import currentframe
+import pprint
+from inspect import currentframe, stack
 
 
 class Service(object):
@@ -29,6 +30,9 @@ class Service(object):
                 "Configure function is already specified for this service"
         self.config_func = func
         return
+
+    def default_uri_func(self, environment, state, **kwargs):
+        pass
 
     def configure_service(self, **kwargs):
         self.config_func(**kwargs)
@@ -87,13 +91,13 @@ class Package(object):
         return path
 
     def fetch_global_val(self, varname):
-        val =  currentframe().f_globals.get(varname)
+        val =  currentframe(1).f_globals.get(varname)
         if val is None:
             raise ValueError("%s is not a variable in the global scope" % varname)
         return val
 
     def update_global_var(self, varname, value):
-        currentframe().f_globals[varname] = value
+        currentframe(1).f_globals[varname] = value
 
     def configure_service(self, service, **kwargs):
         (s,) = [l for l in self.services if l.name==service]

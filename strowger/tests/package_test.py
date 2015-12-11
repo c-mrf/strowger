@@ -1,5 +1,10 @@
+import inspect
+
 from strowger import Package
 from unittest import TestCase
+
+package_root = None
+test_gvar = 'hello_test_gvar'
 
 class PkgMixin(object):
     def setUp(self):
@@ -23,11 +28,13 @@ class TestSetRoot(PkgMixin, TestCase):
         self.assertEqual(self.package.root_envvar, 'test')
 
 
-class TestGetRoot(PkgMixin):
+class TestGetRoot(PkgMixin, TestCase):
     def prd_none(self, boolean):
         pass
+
     def dir_exists(self, boolean):
         pass
+
     def packages(self, boolean):
         pass
 
@@ -80,12 +87,24 @@ class TestGetRoot(PkgMixin):
         pass
 
 
-class TestGlobalVars(PkgMixin):
-    def test_fetch_val_for_gvar_exists(self):
-        pass
-    def test_fetch_val_for_gvar_dne(self):
-        pass
+class TestGlobalVars(PkgMixin, TestCase):
+    gvar_dne = 'test_gvar_dne'
+    gvar = 'test_gvar'
+    new_val = 'new_hello'
+
+    def test_fetch_val_gvar_exists(self):
+        global test_gvar
+        self.assertEqual(test_gvar, self.package.fetch_global_val(self.gvar))
+
+    def test_fetch_val_gvar_dne(self):
+        with self.assertRaises(ValueError):
+            self.package.fetch_global_val(self.gvar_dne)
+
     def test_update_gvar_exists(self):
-        pass
+        self.package.update_global_var(self.gvar, self.new_val)
+        self.assertEqual(self.new_val, self.package.fetch_global_val(self.gvar))
+        self.test_fetch_val_gvar_exists()
+
     def test_update_gvar_dne(self):
-        pass
+        self.package.update_global_var(self.gvar_dne, self.new_val)
+        self.assertEqual(self.new_val, self.package.fetch_global_val(self.gvar_dne))
