@@ -1,3 +1,4 @@
+from ConfigParser import ConfigParser
 import os
 from inspect import currentframe, getframeinfo
 
@@ -14,7 +15,7 @@ class Service(object):
 
         self.service = service
         self.shorthand = service[:2] if shorthand is None else shorthand
-        self.uri = shorthand if uri is None else uri
+        self.uri = '%s_uri' % shorthand if uri is None else uri
         self.requried = required
         self.globalvars = (service,) if globalvars is None else globalvars
         self.config_func = None
@@ -30,18 +31,24 @@ class Service(object):
         self.config_func = func
         return
 
-    def default_uri_func(self, environment, state, **kwargs):
-        pass
-
     def configure_service(self, **kwargs):
-        self.config_func(**kwargs)
-        return
+        return self.config_func(**kwargs)
 
     def _read_config(self, environment=None, state=None):
-        pass
+        parser = ConfigParser()
+        if environment is None:
+            environment = 'default'
+        if state is None:
+            section = self.service
+        else:
+            section = "%s:%s" % (self.service, state)
+        return zip(parser.get(section))
 
-    def get_uri(self, environment=None, state=None, **kwargs):
-        pass
+    def default_uri_func(self, **kwargs):
+        return kwargs.get(self.uri)
+
+    def get_uri(self, **kwargs):
+        return self.uri_func(**kwargs)
 
 
 class Package(object):
