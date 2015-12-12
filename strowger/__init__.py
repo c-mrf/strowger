@@ -1,6 +1,8 @@
 from ConfigParser import ConfigParser
 import os
 from inspect import currentframe, getframeinfo
+from sqlalchemy import create_engine, MetaData
+from sqlalchemy.orm import sessionmaker
 
 
 class Service(object):
@@ -15,7 +17,7 @@ class Service(object):
 
         self.service = service
         self.shorthand = service[:2] if shorthand is None else shorthand
-        self.uri = '%s_uri' % shorthand if uri is None else uri
+        self.uri = uri
         self.requried = required
         self.globalvars = (service,) if globalvars is None else globalvars
         self.config_func = None
@@ -45,7 +47,8 @@ class Service(object):
         return zip(parser.get(section))
 
     def default_uri_func(self, **kwargs):
-        return kwargs.get(self.uri)
+        d = self._read_config(environment=kwargs.get('environment'), state=kwargs.get('state'))
+        return d.get(self.uri)
 
     def get_uri(self, **kwargs):
         return self.uri_func(**kwargs)
@@ -63,12 +66,11 @@ class Package(object):
         self.name = name
 
     def add_service(self, service):
-        service 
         self.services.append(service)
 
     def set_root_var(self, vname):
         """
-        param vname: The local frame 
+        param vname: The name of the variable in the local frame 
         """
         assert self.root_envvar is None, \
                 "root_envvar has already been set"
@@ -132,9 +134,30 @@ class Package(object):
 
 
 class DBPackage(Package):
-    globalvars = {
-            'engine': 'engine',
-            'metadata': 'metadata',
-            'session': 'session',
-        }
-    pass
+    def __init__(self, name):
+        super(DBPackage, self).__init__(name)
+        self.db_uri = self.db.get_uri()
+
+        globalvars = {
+                'engine': 'engine',
+                'metadata': 'metadata',
+                'session': 'session',
+            }
+
+        db = Service(service='database', shorthand='db', globalvars=globalvars, uri='uri', required=True)
+
+        @db.configure_func
+        def configure_db(environment=None, state=None, **kwargs):
+            db_uri = db.get_uri(environment=environment, state=state)
+            engine_var = db.globalvars['engine']
+            self.update_global_var(engine_var, create_engine(db_uri))
+
+            metadata_var = db.globalvars['metadata']
+            engine = self.fetch_global_var(engine_var)
+            meta = MetaData()
+            meta.bind = engine
+            self.update_global_var(metadata_var, meta)
+
+            session_var = db.globalvars['session']
+            self.update_global_var(session_var, sessionmaker(bind=engine))
+
