@@ -5,7 +5,8 @@ setup(name ='strowger',
       author='CMRF',
       packages=find_packages(),
       install_requires = [
-          'nose'
+          'nose',
+          'sqlalchemy'
       ]
   )
 

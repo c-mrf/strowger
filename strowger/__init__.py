@@ -6,13 +6,14 @@ from sqlalchemy.orm import sessionmaker
 
 
 class Service(object):
-    def __init__(self, service=None, shorthand=None, globalvars=None, uri=None, required=False):
+    def __init__(self, service=None, shorthand=None, globalvars=None, uri=None, required=False, configs=None):
         """
         :param service: A name for the service, e.g. `database`
         :param shorthand: A shorthand, e.g. `db`
         :param uri: config option for URI for the service e.g. `db_uri`
         :param required: Boolean value denoting whether the service is required
         :param globalvars: An iterable of the globalvars of interest
+        :param configs: A path to the folder holding the config files for this service
         """
 
         self.service = service
@@ -20,6 +21,7 @@ class Service(object):
         self.uri = uri
         self.requried = required
         self.globalvars = (service,) if globalvars is None else globalvars
+        self.config_folder = configs
         self.config_func = None
         self.uri_func = self.default_uri_func
 
@@ -40,11 +42,13 @@ class Service(object):
         parser = ConfigParser()
         if environment is None:
             environment = 'default'
+        env_file = '%s.ini' % environment
+        parser.readfp(open(os.path.join(self.configs, env_file)))
         if state is None:
             section = self.service
         else:
             section = "%s:%s" % (self.service, state)
-        return zip(parser.get(section))
+        return dict(parser.items(section))
 
     def default_uri_func(self, **kwargs):
         d = self._read_config(environment=kwargs.get('environment'), state=kwargs.get('state'))
@@ -91,7 +95,8 @@ class Package(object):
             if os.environ.get(rv):
                 prd = os.environ[rv]
             else:
-                prd = os.path.dirname(os.path.abspath(__file__))
+                frame = self.correct_frame()
+                prd = os.path.dirname(frame.f_globals['__file__'])
         if packages:
             path = os.path.join(prd, *packages)
         else:
@@ -139,6 +144,8 @@ class DBPackage(Package):
         self.db_uri = self.db.get_uri()
 
         globalvars = {
+                'Base_meta_bind': 'Base.metadata.bind',
+                'Base_meta': 'Base.metadata',
                 'engine': 'engine',
                 'metadata': 'metadata',
                 'session': 'session',
@@ -152,11 +159,12 @@ class DBPackage(Package):
             engine_var = db.globalvars['engine']
             self.update_global_var(engine_var, create_engine(db_uri))
 
+            engine = self.fetch_global_val(engine_var)
+            base_meta_bind = db.globalvas['Base_meta_bind']
+            self.update_global_var(base_meta_bind, engine)
+            base_meta = db.globalvars['Base_meta']
             metadata_var = db.globalvars['metadata']
-            engine = self.fetch_global_var(engine_var)
-            meta = MetaData()
-            meta.bind = engine
-            self.update_global_var(metadata_var, meta)
+            self.update_global_var(metadata_var, base_meta)
 
             session_var = db.globalvars['session']
             self.update_global_var(session_var, sessionmaker(bind=engine))

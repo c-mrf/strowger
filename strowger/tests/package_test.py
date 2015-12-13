@@ -283,3 +283,7 @@ class TestGlobalVars(PkgMixin, TestCase):
     def test_update_gvar_dne(self):
         self.package.update_global_var(self.gvar_dne, self.new_val)
         self.assertEqual(self.new_val, self.package.fetch_global_val(self.gvar_dne))
+
+
+class TestDBPackage(PkgMixin, TestCase):
+    pass
