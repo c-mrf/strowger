@@ -291,17 +291,15 @@ engine = None
 metadata = None
 session = None
 
-class SvcMixin(object):
+class DbPkgMixin(object):
     def setUp(self):
-        def cleanUp():
-            global db_pkg_root, engine, metadata, session
-            db_pkg_root = engine = metadata = session = None
-            delattr(self, 'package')
+        try:
+            doCleanups()
+        except:
+            pass
 
-        self.addCleanup(cleanUp)
-
-        super(SvcMixin, self).setUp()
-        pkgnm = 'testpkg'
+        super(DbPkgMixin, self).setUp()
+        pkgnm = 'testdbpkg'
         self.package = DBPackage(pkgnm)
         self.package.root_gvar = 'db_pkg_root'
         self.assertIsNone(self.package.fetch_global_val(self.package.root_gvar))
@@ -318,10 +316,17 @@ class SvcMixin(object):
         self.assertEqual(base.metadata, metadata)
         self.assertEqual(base.metadata.bind, engine)
 
+        def cleanUp():
+            global db_pkg_root, engine, metadata, session
+            db_pkg_root = engine = metadata = session = None
+            delattr(self, 'package')
+
+        self.addCleanup(cleanUp)
+
         self.doCleanups()
 
 
-class TestDBPackage(SvcMixin, TestCase):
+class TestDBPackage(DbPkgMixin, TestCase):
     def test_default_env(self):
         self.package.configure(services=True, environment='db_testing')
         self.assertIsNotNone(self.package.fetch_global_val(self.package.root_gvar))
