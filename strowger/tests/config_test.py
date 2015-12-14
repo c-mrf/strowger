@@ -5,20 +5,25 @@ from unittest import TestCase
 
 
 prd = None
+svc_global = None
 
 class SvcMixin(object):
     def setUp(self):
         super(SvcMixin, self).setUp()
         service = 'SectionOne'
         shorthand = 'so'
-        self.service = Service(service=service, shorthand=shorthand)
-        self.uri = 'uri'
+        globalvars = {'globalvar': 'svc_global'}
+        self.service = Service(service=service, shorthand=shorthand, globalvars=globalvars)
+        self.uri = self.service.uri = 'uri'
         self.assertEqual(self.service.service, service)
 
 class TestPkgConfig(SvcMixin, PkgMixin, TestCase):
     def setUp(self):
         super(TestPkgConfig, self).setUp()
         self.package.root_gvar = 'prd'
+
+        test_root = self.package.get_root_dir()
+        self.service.config_folder = path.join(test_root, 'config')
 
     def test_find_test_root(self):
         test_root = self.package.get_root_dir()
@@ -39,11 +44,16 @@ class TestPkgConfig(SvcMixin, PkgMixin, TestCase):
             self.service._read_config(environment='environment_dne')
 
     def test_read_config_specified_state(self):
-        test_root = self.package.get_root_dir()
-        self.service.configs = path.join(test_root, 'config')
         options = self.service._read_config(environment='environment_one', state='testing')
         self.assertIsNotNone(options)
         self.assertIsInstance(options, dict)
         self.assertEqual(options[self.uri], 'hello://there')
 
+    def test_configure_service_via_package(self):
+        @self.service.configure_func
+        def configure_tstpkg_service(environment=None, state=None, **kwargs):
+            opts = self.service._read_config(environment=environment, state=state)
+            self.assertEqual(opts[self.uri], self.service.get_uri(environment=environment, state=state))
 
+        self.package.add_service(self.service)
+        self.package.configure(pkg_root=False, services=True, environment='environment_one')

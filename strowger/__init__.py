@@ -1,7 +1,9 @@
-from ConfigParser import ConfigParser
 import os
+import strowger.lib as lib
+
+from ConfigParser import ConfigParser
 from inspect import currentframe, getframeinfo
-from sqlalchemy import create_engine, MetaData
+from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 
@@ -43,7 +45,8 @@ class Service(object):
         if environment is None:
             environment = 'default'
         env_file = '%s.ini' % environment
-        parser.readfp(open(os.path.join(self.configs, env_file)))
+
+        parser.readfp(open(os.path.join(self.config_folder, env_file)))
         if state is None:
             section = self.service
         else:
@@ -120,7 +123,10 @@ class Package(object):
         return val
 
     def update_global_var(self, varname, value):
-        currentframe(1).f_globals[varname] = value
+        self.correct_frame().f_globals[varname] = value
+
+    def set_global_attr(self, var, attr, val):
+        pass
 
     def configure_service(self, service, **kwargs):
         (s,) = [l for l in self.services if l.name==service]
@@ -139,33 +145,37 @@ class Package(object):
 
 
 class DBPackage(Package):
+    globalvars = {
+            'Base': 'Base',
+            'engine': 'engine',
+            'metadata': 'metadata',
+            'session': 'session',
+        }
+
     def __init__(self, name):
         super(DBPackage, self).__init__(name)
-        self.db_uri = self.db.get_uri()
+        self.db = Service(service='database', shorthand='db', globalvars=self.globalvars, uri='uri', required=True)
+        self.add_service(self.db)
 
-        globalvars = {
-                'Base_meta_bind': 'Base.metadata.bind',
-                'Base_meta': 'Base.metadata',
-                'engine': 'engine',
-                'metadata': 'metadata',
-                'session': 'session',
-            }
-
-        db = Service(service='database', shorthand='db', globalvars=globalvars, uri='uri', required=True)
-
-        @db.configure_func
+        @self.db.configure_func
         def configure_db(environment=None, state=None, **kwargs):
-            db_uri = db.get_uri(environment=environment, state=state)
-            engine_var = db.globalvars['engine']
+            if not self.db.config_folder:
+                self.db.config_folder = os.path.join(self.get_root_dir(), 'config')
+
+            db_uri = self.db.get_uri(environment=environment, state=state)
+            engine_var = self.db.globalvars['engine']
             self.update_global_var(engine_var, create_engine(db_uri))
 
             engine = self.fetch_global_val(engine_var)
-            base_meta_bind = db.globalvas['Base_meta_bind']
-            self.update_global_var(base_meta_bind, engine)
-            base_meta = db.globalvars['Base_meta']
-            metadata_var = db.globalvars['metadata']
-            self.update_global_var(metadata_var, base_meta)
+            base_obj = self.db.globalvars['Base']
+            base = self.fetch_global_val(base_obj)
+            lib.rsetattr(base, 'metadata.bind', engine)
+            self.update_global_var(base_obj, base)
 
-            session_var = db.globalvars['session']
+            metadata_var = self.db.globalvars['metadata']
+            self.update_global_var(metadata_var, base.metadata)
+
+            session_var = self.db.globalvars['session']
             self.update_global_var(session_var, sessionmaker(bind=engine))
+
 
