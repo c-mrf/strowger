@@ -161,7 +161,6 @@ class DBPackage(Package):
 
     def __init__(self, name):
         super(self.__class__, self).__init__(name)
-        print "DBPackage services: ", self.services
         self.db = Service(service='database', shorthand='db', globalvars=self.globalvars, uri='uri', required=True)
         self.add_service(self.db)
 
