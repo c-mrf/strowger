@@ -15,8 +15,6 @@ class DbPkgMixin(object):
     def setUp(self):
         pkgnm = 'testdbpkg'
         self.package = DBPackage(pkgnm)
-        print 'package after setUp: ', dir(self.package)
-        print 'package services: ', self.package.services
         self.package.root_gvar = 'db_pkg_root'
         self.assertIsNone(self.package.fetch_global_val(self.package.root_gvar))
         self.assertEqual(self.package.name, pkgnm)
