@@ -1,5 +1,3 @@
-
-import functools
 import strowger.lib as lib
 
 from unittest import TestCase

@@ -1,8 +1,6 @@
 import os
 
-from sqlalchemy import MetaData
-from strowger import DBPackage, Package
-from strowger.tests import Base
+from strowger import Package
 from unittest import TestCase
 
 package_root = None
@@ -10,7 +8,6 @@ test_gvar = 'hello_test_gvar'
 
 class PkgMixin(object):
     def setUp(self):
-        super(PkgMixin, self).setUp()
         pkgnm = 'testpkg'
         self.package = Package(pkgnm)
         self.assertEqual(self.package.name, pkgnm)
@@ -52,7 +49,6 @@ class TestGetRoot(PkgMixin, TestCase):
                 os.unsetenv(self.package.root_envvar)
             except KeyError:
                 pass
-        super(TestGetRoot, self).tearDown()
 
     def dir_exists(self, boolean):
         self.dir_exists = boolean
@@ -103,7 +99,6 @@ class TestGetRoot(PkgMixin, TestCase):
                 self.assertEqual(test_dir, correct)
                 if self.envvar:
                     assert os.environ[self.package.get_root_var()] is not None
-                #print "\n\t %s" % correct
             else:
                 with self.assertRaises(ValueError):
                     self.package.get_root_dir(packages=self.packages)
@@ -285,58 +280,3 @@ class TestGlobalVars(PkgMixin, TestCase):
     def test_update_gvar_dne(self):
         self.package.update_global_var(self.gvar_dne, self.new_val)
         self.assertEqual(self.new_val, self.package.fetch_global_val(self.gvar_dne))
-
-db_pkg_root = None
-engine = None
-metadata = None
-session = None
-
-class DbPkgMixin(object):
-    def setUp(self):
-        try:
-            doCleanups()
-        except:
-            pass
-
-        super(DbPkgMixin, self).setUp()
-        pkgnm = 'testdbpkg'
-        self.package = DBPackage(pkgnm)
-        self.package.root_gvar = 'db_pkg_root'
-        self.assertIsNone(self.package.fetch_global_val(self.package.root_gvar))
-        self.assertEqual(self.package.name, pkgnm)
-        self.package.db.config_folder = os.path.join(self.package.get_root_dir(), 'config')
-
-
-
-    def tearDown(self):
-        base = self.package.fetch_global_val('Base')
-        engine = self.package.fetch_global_val('engine')
-        metadata = self.package.fetch_global_val('metadata')
-        self.assertIsInstance(metadata, MetaData)
-        self.assertEqual(base.metadata, metadata)
-        self.assertEqual(base.metadata.bind, engine)
-
-        def cleanUp():
-            global db_pkg_root, engine, metadata, session
-            db_pkg_root = engine = metadata = session = None
-            delattr(self, 'package')
-
-        self.addCleanup(cleanUp)
-
-        self.doCleanups()
-
-
-class TestDBPackage(DbPkgMixin, TestCase):
-    def test_default_env(self):
-        self.package.configure(services=True, environment='db_testing')
-        self.assertIsNotNone(self.package.fetch_global_val(self.package.root_gvar))
-
-        db_uri = self.package.db.get_uri(environment='db_testing')
-        self.assertEqual(db_uri, 'sqlite:///dbtesting.db')
-
-    def test_testing_env(self):
-        self.package.configure(services=True, environment='db_testing', state='testing')
-        self.assertIsNotNone(self.package.fetch_global_val(self.package.root_gvar))
-
-        db_uri = self.package.db.get_uri(environment='db_testing', state='testing')
-        self.assertEqual(db_uri, 'sqlite:///dbtestingtesting.db')

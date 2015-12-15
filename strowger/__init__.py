@@ -27,6 +27,9 @@ class Service(object):
         self.config_func = None
         self.uri_func = self.default_uri_func
 
+    def __repr__(self):
+        return '< Service | %s | %s >' % (self.service, self.shorthand)
+
     def configure_func(self, func):
         """
         A hook for setting the function to configure the global vars
@@ -46,12 +49,17 @@ class Service(object):
             environment = 'default'
         env_file = '%s.ini' % environment
 
-        parser.readfp(open(os.path.join(self.config_folder, env_file)))
         if state is None:
             section = self.service
         else:
             section = "%s:%s" % (self.service, state)
-        return dict(parser.items(section))
+
+        with open(os.path.join(self.config_folder, env_file)) as fp:
+            parser.readfp(fp)
+            out = parser.items(section)
+            fp.close()
+        del parser
+        return dict(out)
 
     def default_uri_func(self, **kwargs):
         d = self._read_config(environment=kwargs.get('environment'), state=kwargs.get('state'))
@@ -62,15 +70,14 @@ class Service(object):
 
 
 class Package(object):
-    services = []
-    root_envvar = None
-    root_gvar = None
-
     def __init__(self, name):
         """
         :param name: The name of the being developed
         """
         self.name = name
+        self.services = []
+        self.root_envvar = None
+        self.root_gvar = None
 
     def add_service(self, service):
         self.services.append(service)
@@ -153,7 +160,8 @@ class DBPackage(Package):
         }
 
     def __init__(self, name):
-        super(DBPackage, self).__init__(name)
+        super(self.__class__, self).__init__(name)
+        print "DBPackage services: ", self.services
         self.db = Service(service='database', shorthand='db', globalvars=self.globalvars, uri='uri', required=True)
         self.add_service(self.db)
 
