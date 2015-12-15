@@ -70,14 +70,14 @@ class Service(object):
 
 
 class Package(object):
-    def __init__(self, name):
+    def __init__(self, name, root_gvar=None):
         """
         :param name: The name of the being developed
         """
         self.name = name
         self.services = []
         self.root_envvar = None
-        self.root_gvar = None
+        self.root_gvar = root_gvar
 
     def add_service(self, service):
         self.services.append(service)
