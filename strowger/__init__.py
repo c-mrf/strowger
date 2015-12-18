@@ -159,8 +159,8 @@ class DBPackage(Package):
             'session': 'session',
         }
 
-    def __init__(self, name):
-        super(self.__class__, self).__init__(name)
+    def __init__(self, name, root_gvar=None):
+        super(self.__class__, self).__init__(name, root_gvar=root_gvar)
         self.db = Service(service='database', shorthand='db', globalvars=self.globalvars, uri='uri', required=True)
         self.add_service(self.db)
 
