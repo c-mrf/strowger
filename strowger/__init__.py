@@ -12,9 +12,9 @@ class Service(object):
         """
         :param service: A name for the service, e.g. `database`
         :param shorthand: A shorthand, e.g. `db`
+        :param globalvars: An iterable of the globalvars of interest
         :param uri: config option for URI for the service e.g. `db_uri`
         :param required: Boolean value denoting whether the service is required
-        :param globalvars: An iterable of the globalvars of interest
         :param configs: A path to the folder holding the config files for this service
         """
 
@@ -72,7 +72,9 @@ class Service(object):
 class Package(object):
     def __init__(self, name, root_gvar=None):
         """
-        :param name: The name of the being developed
+        :param name: The name of the package being developed
+        :param root_gvar: The name of the variable in the global scope holding a
+        string with the directory location of the package root 
         """
         self.name = name
         self.services = []
