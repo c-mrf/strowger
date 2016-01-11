@@ -4,7 +4,7 @@ import strowger.lib as lib
 from ConfigParser import ConfigParser
 from inspect import currentframe, getframeinfo
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import scoped_session, sessionmaker
 
 
 class Service(object):
@@ -185,8 +185,6 @@ class DBPackage(Package):
             self.update_global_var(metadata_var, base.metadata)
 
             session_var = self.db.globalvars['session']
-            Session = sessionmaker()
-            Session.configure(bind=engine)
-            self.update_global_var(session_var, Session())
+            self.update_global_var(session_var, scoped_session(sessionmaker(bind=engine)))
 
 
