@@ -173,7 +173,7 @@ class DBPackage(Package):
 
             db_uri = self.db.get_uri(environment=environment, state=state)
             engine_var = self.db.globalvars['engine']
-            self.update_global_var(engine_var, create_engine(db_uri))
+            self.update_global_var(engine_var, create_engine(db_uri, convert_unicode=True, pool_size=10, max_overflow=10))
 
             engine = self.fetch_global_val(engine_var)
             base_obj = self.db.globalvars['Base']
@@ -185,6 +185,8 @@ class DBPackage(Package):
             self.update_global_var(metadata_var, base.metadata)
 
             session_var = self.db.globalvars['session']
-            self.update_global_var(session_var, sessionmaker(bind=engine))
+            Session = sessionmaker()
+            Session.configure(bind=engine)
+            self.update_global_var(session_var, Session())
 
 

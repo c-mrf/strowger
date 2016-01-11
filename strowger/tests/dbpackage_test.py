@@ -36,7 +36,6 @@ class DbPkgMixin(object):
             delattr(self, 'package')
 
         self.addCleanup(cleanUp)
-
         self.doCleanups()
 
 
