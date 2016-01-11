@@ -173,7 +173,7 @@ class DBPackage(Package):
 
             db_uri = self.db.get_uri(environment=environment, state=state)
             engine_var = self.db.globalvars['engine']
-            self.update_global_var(engine_var, create_engine(db_uri))
+            self.update_global_var(engine_var, create_engine(db_uri, convert_unicode=True))
 
             engine = self.fetch_global_val(engine_var)
             base_obj = self.db.globalvars['Base']
