@@ -39,7 +39,7 @@ class DbPkgMixin(object):
         self.doCleanups()
 
 
-class TestDBPackage(DbPkgMixin, TestCase):
+class TestDBPackageConnection(DbPkgMixin, TestCase):
     def test_default_env(self):
         self.package.configure(services=True, environment='db_testing')
         self.assertIsNotNone(self.package.fetch_global_val(self.package.root_gvar))
