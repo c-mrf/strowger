@@ -1,7 +1,7 @@
 import os
 import strowger.lib as lib
 
-from ConfigParser import ConfigParser
+from ConfigParser import RawConfigParser as ConfigParser
 from inspect import currentframe, getframeinfo
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
