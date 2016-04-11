@@ -167,13 +167,13 @@ class DBPackage(Package):
         self.add_service(self.db)
 
         @self.db.configure_func
-        def configure_db(environment=None, state=None, **kwargs):
+        def configure_db(environment=None, state=None, pool_size=20, max_overflow=0, **kwargs):
             if not self.db.config_folder:
                 self.db.config_folder = os.path.join(self.get_root_dir(), 'config')
 
             db_uri = self.db.get_uri(environment=environment, state=state)
             engine_var = self.db.globalvars['engine']
-            self.update_global_var(engine_var, create_engine(db_uri, convert_unicode=True))
+            self.update_global_var(engine_var, create_engine(db_uri, convert_unicode=True, pool_size=pool_size, max_overflow=max_overflow))
 
             engine = self.fetch_global_val(engine_var)
             base_obj = self.db.globalvars['Base']
