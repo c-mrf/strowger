@@ -57,3 +57,12 @@ class TestPkgConfig(SvcMixin, PkgMixin, TestCase):
 
         self.package.add_service(self.service)
         self.package.configure(pkg_root=False, services=True, environment='environment_one')
+
+    def test_configure_service_via_package_vars_in_str(self):
+        @self.service.configure_func
+        def configure_tstpkg_service(environment=None, state=None, **kwargs):
+            opts = self.service._read_config(environment=environment, state=state)
+            self.assertEqual(opts[self.uri], self.service.get_uri(environment=environment, state=state))
+
+        self.package.add_service(self.service)
+        self.package.configure(pkg_root=False, services=True, environment='environment_three', state='testing')
