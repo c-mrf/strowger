@@ -53,3 +53,25 @@ class TestDBPackageConnection(DbPkgMixin, TestCase):
 
         db_uri = self.package.db.get_uri(environment='db_testing', state='testing')
         self.assertEqual(db_uri, 'sqlite:///dbtestingtesting.db')
+
+class TestDBNoBase(DbPkgMixin, TestCase):
+
+    def test_testing_env(self):
+        self.package.configure(services=True, environment='db_testing', state='testing', configure_base=False)
+
+    def tearDown(self):
+        base = self.package.fetch_global_val('Base')
+        engine = self.package.fetch_global_val('engine')
+        metadata = self.package.fetch_global_val('metadata')
+        self.assertIsInstance(metadata, MetaData)
+        self.assertNotEqual(base.metadata, metadata)
+        self.assertNotEqual(base.metadata.bind, engine)
+
+        def cleanUp():
+            global db_pkg_root, engine, metadata, session
+            db_pkg_root = engine = metadata = session = None
+            delattr(self, 'package')
+
+        self.addCleanup(cleanUp)
+        self.doCleanups()
+

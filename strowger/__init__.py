@@ -3,7 +3,7 @@ import strowger.lib as lib
 
 from ConfigParser import RawConfigParser as ConfigParser
 from inspect import currentframe, getframeinfo
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, MetaData
 from sqlalchemy.orm import scoped_session, sessionmaker
 
 
@@ -167,24 +167,36 @@ class DBPackage(Package):
         self.add_service(self.db)
 
         @self.db.configure_func
-        def configure_db(environment=None, state=None, pool_size=20, max_overflow=0, **kwargs):
+        def configure_db(environment=None, state=None, pool_size=None, max_overflow=None, **kwargs):
             if not self.db.config_folder:
                 self.db.config_folder = os.path.join(self.get_root_dir(), 'config')
 
             db_uri = self.db.get_uri(environment=environment, state=state)
             engine_var = self.db.globalvars['engine']
-            self.update_global_var(engine_var, create_engine(db_uri, convert_unicode=True, pool_size=pool_size, max_overflow=max_overflow))
+
+            engine_config = {}
+            if pool_size:
+                engine_config["pool_size"] = pool_size
+            if max_overflow:
+                engine_config["max_overlow"] = max_overflow
+
+            self.update_global_var(engine_var, create_engine(db_uri, convert_unicode=True, **engine_config))
 
             engine = self.fetch_global_val(engine_var)
-            base_obj = self.db.globalvars['Base']
-            base = self.fetch_global_val(base_obj)
-            lib.rsetattr(base, 'metadata.bind', engine)
-            self.update_global_var(base_obj, base)
-
             metadata_var = self.db.globalvars['metadata']
-            self.update_global_var(metadata_var, base.metadata)
-
             session_var = self.db.globalvars['session']
+            
+            if kwargs.get('configure_base') is not False:
+                base_obj = self.db.globalvars['Base']
+                base = self.fetch_global_val(base_obj)
+                lib.rsetattr(base, 'metadata.bind', engine)
+                self.update_global_var(base_obj, base)
+
+                self.update_global_var(metadata_var, base.metadata)
+
+            else:
+                self.update_global_var(metadata_var, MetaData())
+
             self.update_global_var(session_var, scoped_session(sessionmaker(bind=engine)))
 
 
