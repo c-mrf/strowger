@@ -143,11 +143,22 @@ class Package(object):
         return
 
     def configure(self, pkg_root=True, services=False, **kwargs):
+        """
+        `services` can be either a boolean or a list.
+        If boolean and False, no services are configured.
+        If boolean and True, all services are configured.
+        If a list, each service with shorthand in the list is configured.
+        """
         if pkg_root:
             pkgroot = self.get_root_dir(kwargs.get('packages')) 
             self.update_global_var(self.root_gvar, pkgroot)
         
-        if services:
+        if isinstance(services, list):
+            for s in self.services:
+                if s.shorthand in services:
+                    s.configure_service(**kwargs)
+
+        elif services is True:
             for s in self.services:
                 s.configure_service(**kwargs)
         return
